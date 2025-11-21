@@ -30,66 +30,12 @@ export async function loader({}: Route.LoaderArgs) {
   return { drivers };
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const intent = formData.get("intent");
+// -----------------------------------------------------------------------------
+// DRIVER FORM (MODERN DESIGN)
+// -----------------------------------------------------------------------------
 
-  if (intent === "create") {
-    const data = {
-      name: formData.get("name") as string,
-      sex: formData.get("sex") as string,
-      birthDate: new Date(formData.get("birthDate") as string),
-      country: formData.get("country") as string,
-    };
-
-    const result = driverSchema.safeParse({ ...data, birthDate: formData.get("birthDate") as string });
-    if (!result.success) {
-      return { success: false, errors: result.error.flatten().fieldErrors };
-    }
-
-    await driverRepository.create(data);
-    return { success: true, message: "Driver created successfully" };
-  }
-
-  if (intent === "update") {
-    const id = parseInt(formData.get("id") as string);
-    const data = {
-      name: formData.get("name") as string,
-      sex: formData.get("sex") as string,
-      birthDate: new Date(formData.get("birthDate") as string),
-      country: formData.get("country") as string,
-    };
-
-    const result = driverSchema.safeParse({ ...data, birthDate: formData.get("birthDate") as string });
-    if (!result.success) {
-      return { success: false, errors: result.error.flatten().fieldErrors };
-    }
-
-    await driverRepository.update(id, data);
-    return { success: true, message: "Driver updated successfully" };
-  }
-
-  if (intent === "delete") {
-    const id = parseInt(formData.get("id") as string);
-    await driverRepository.delete(id);
-    return { success: true, message: "Driver deleted successfully" };
-  }
-
-  return { success: false, message: "Invalid action" };
-}
-
-function DriverForm({ 
-  driver, 
-  onSuccess 
-}: { 
-  driver?: Driver; 
-  onSuccess: () => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<DriverFormData>({
+function DriverForm({ driver, onSuccess }: { driver?: Driver; onSuccess: () => void }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<DriverFormData>({
     resolver: zodResolver(driverSchema),
     defaultValues: driver ? {
       name: driver.name,
@@ -99,7 +45,7 @@ function DriverForm({
     } : undefined,
   });
 
-  const fetcher = useFetcher<typeof action>();
+  const fetcher = useFetcher();
 
   const onSubmit = async (data: DriverFormData) => {
     const formData = new FormData();
@@ -115,70 +61,53 @@ function DriverForm({
 
   useEffect(() => {
     if (fetcher.data?.success) {
-      toast.success(fetcher.data.message || (driver ? "Driver updated successfully" : "Driver created successfully"));
+      toast.success(fetcher.data.message || "Success");
       onSuccess();
-    } else if (fetcher.data?.success === false) {
-      if (fetcher.data.errors) {
-        Object.values(fetcher.data.errors).forEach((errorMessages) => {
-          errorMessages?.forEach((message) => {
-            toast.error(message);
-          }
-          );
-        });
-      };
+    } else if (fetcher.data?.errors) {
+      Object.values(fetcher.data.errors).forEach((messages) => {
+        messages?.forEach((msg) => toast.error(msg));
+      });
     }
-  }, [fetcher.data, onSuccess, driver]);
+  }, [fetcher.data, onSuccess]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <FieldGroup>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <FieldGroup className="grid gap-4">
         <Field>
-          <FieldLabel htmlFor="name">Name</FieldLabel>
-          <Input id="name" {...register("name")} />
-          {errors.name && (
-            <FieldDescription className="text-destructive">
-              {errors.name.message}
-            </FieldDescription>
-          )}
+          <FieldLabel>Name</FieldLabel>
+          <Input {...register("name")} className="bg-neutral-900 border-neutral-700 text-white" />
+          {errors.name && <FieldDescription className="text-red-500">{errors.name.message}</FieldDescription>}
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="sex">Sex</FieldLabel>
-          <Input id="sex" placeholder="M or F" {...register("sex")} />
-          {errors.sex && (
-            <FieldDescription className="text-destructive">
-              {errors.sex.message}
-            </FieldDescription>
-          )}
+          <FieldLabel>Sex</FieldLabel>
+          <Input {...register("sex")} placeholder="M or F" className="bg-neutral-900 border-neutral-700 text-white" />
+          {errors.sex && <FieldDescription className="text-red-500">{errors.sex.message}</FieldDescription>}
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="birthDate">Birth Date</FieldLabel>
-          <Input id="birthDate" type="date" {...register("birthDate")} />
-          {errors.birthDate && (
-            <FieldDescription className="text-destructive">
-              {errors.birthDate.message}
-            </FieldDescription>
-          )}
+          <FieldLabel>Birth Date</FieldLabel>
+          <Input type="date" {...register("birthDate")} className="bg-neutral-900 border-neutral-700 text-white" />
+          {errors.birthDate && <FieldDescription className="text-red-500">{errors.birthDate.message}</FieldDescription>}
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="country">Country</FieldLabel>
-          <Input id="country" {...register("country")} />
-          {errors.country && (
-            <FieldDescription className="text-destructive">
-              {errors.country.message}
-            </FieldDescription>
-          )}
+          <FieldLabel>Country</FieldLabel>
+          <Input {...register("country")} className="bg-neutral-900 border-neutral-700 text-white" />
+          {errors.country && <FieldDescription className="text-red-500">{errors.country.message}</FieldDescription>}
         </Field>
-
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : driver ? "Update Driver" : "Create Driver"}
-        </Button>
       </FieldGroup>
+
+      <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
+        {isSubmitting ? "Saving..." : driver ? "Update Driver" : "Create Driver"}
+      </Button>
     </form>
   );
 }
+
+// -----------------------------------------------------------------------------
+// MAIN CRUD PAGE (FULL REDESIGN)
+// -----------------------------------------------------------------------------
 
 export default function CRUDPage({ loaderData }: Route.ComponentProps) {
   const { drivers } = loaderData;
@@ -186,104 +115,118 @@ export default function CRUDPage({ loaderData }: Route.ComponentProps) {
   const [editingDriver, setEditingDriver] = useState<Driver | undefined>();
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this driver?")) return;
+    if (!confirm("Are you sure?")) return;
 
     const formData = new FormData();
     formData.append("intent", "delete");
     formData.append("id", id.toString());
 
-    const response = await fetch("/crud", {
-      method: "POST",
-      body: formData,
-    });
-
+    const response = await fetch("/crud", { method: "POST", body: formData });
     const result = await response.json();
 
     if (result.success) {
       toast.success(result.message);
       window.location.reload();
-    } else {
-      toast.error("Delete failed");
-    }
+    } else toast.error("Delete failed");
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Driver Management (CRUD)</CardTitle>
-              <CardDescription>
-                Create, Read, Update, and Delete driver records
-              </CardDescription>
+    <div className="min-h-screen bg-gradient-to-b from-black via-neutral-900 to-black text-white py-12 px-4">
+
+      <div className="container mx-auto max-w-6xl">
+        <Card className="bg-neutral-900 border-neutral-800 shadow-xl rounded-xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-3xl text-red-500">Driver Management</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Create, Read, Update & Delete Formula 1 drivers
+                </CardDescription>
+              </div>
+
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => setEditingDriver(undefined)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Driver
+                  </Button>
+                </DialogTrigger>
+
+                <DialogContent className="bg-neutral-900 border border-neutral-700 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-red-500">
+                      {editingDriver ? "Edit Driver" : "Add New Driver"}
+                    </DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      {editingDriver ? "Update the selected driver" : "Fill in the fields below"}
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <DriverForm driver={editingDriver} onSuccess={() => setOpen(false)} />
+                </DialogContent>
+              </Dialog>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setEditingDriver(undefined)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Driver
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{editingDriver ? "Edit Driver" : "Add New Driver"}</DialogTitle>
-                  <DialogDescription>
-                    {editingDriver ? "Update driver information" : "Enter new driver details"}
-                  </DialogDescription>
-                </DialogHeader>
-                <DriverForm driver={editingDriver} onSuccess={() => setOpen(false)} />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Sex</TableHead>
-                <TableHead>Birth Date</TableHead>
-                <TableHead>Country</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {drivers.map((driver: Driver) => (
-                <TableRow key={driver.id}>
-                  <TableCell>{driver.id}</TableCell>
-                  <TableCell className="font-medium">{driver.name}</TableCell>
-                  <TableCell>{driver.sex}</TableCell>
-                  <TableCell>{format(new Date(driver.birthDate), "PPP")}</TableCell>
-                  <TableCell>{driver.country}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditingDriver(driver);
-                          setOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(driver.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          </CardHeader>
+
+          <CardContent>
+            <div className="overflow-x-auto rounded-lg border border-neutral-800">
+              <Table>
+                <TableHeader className="bg-neutral-800/50">
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Sex</TableHead>
+                    <TableHead>Birth Date</TableHead>
+                    <TableHead>Country</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {drivers.map((driver: Driver) => (
+                    <TableRow key={driver.id} className="hover:bg-neutral-800/40">
+                      <TableCell>{driver.id}</TableCell>
+                      <TableCell className="font-semibold text-red-400">{driver.name}</TableCell>
+                      <TableCell>{driver.sex}</TableCell>
+                      <TableCell>{format(new Date(driver.birthDate), "PPP")}</TableCell>
+                      <TableCell>{driver.country}</TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-neutral-700 text-gray-300 hover:border-red-500"
+                            onClick={() => {
+                              setEditingDriver(driver);
+                              setOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleDelete(driver.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 4038;
-const BASE_PATH = "/app042";
+const BASE_PATH = "/app038";
 
 // Serve static assets from build/client with base path
 app.use(

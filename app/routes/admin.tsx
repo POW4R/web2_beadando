@@ -4,10 +4,11 @@ import { prisma } from "~/lib/prisma.server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import type { Route } from "./+types/admin";
+import { Users, Flag, Trophy, Mail, Database } from "lucide-react";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request);
-  
+
   if (!session.userId || session.role !== "ADMIN") {
     throw redirect("/");
   }
@@ -40,90 +41,79 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function AdminPage({ loaderData }: Route.ComponentProps) {
   const { stats, recentUsers } = loaderData;
 
+  const statCards = [
+    { label: "Users", value: stats.users, icon: <Users className="h-6 w-6 text-red-500" /> },
+    { label: "Drivers", value: stats.drivers, icon: <Flag className="h-6 w-6 text-red-500" /> },
+    { label: "Grand Prix", value: stats.gps, icon: <Trophy className="h-6 w-6 text-red-500" /> },
+    { label: "Results", value: stats.results, icon: <Database className="h-6 w-6 text-red-500" /> },
+    { label: "Messages", value: stats.contacts, icon: <Mail className="h-6 w-6 text-red-500" /> },
+  ];
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground">
-          Manage your application and view statistics
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-black via-neutral-900 to-black text-white py-12 px-4">
+      <div className="container mx-auto max-w-7xl">
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <h1 className="text-5xl font-extrabold text-red-500 tracking-tight">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-400 mt-3">
+            Manage your F1 platform and view live system statistics
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
+          {statCards.map((item, i) => (
+            <Card key={i} className="bg-neutral-900 border border-neutral-800 hover:border-red-500 transition-all rounded-xl shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg font-semibold text-gray-200">{item.label}</CardTitle>
+                {item.icon}
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-extrabold text-red-500">{item.value}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Recent Users */}
+        <Card className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl">
           <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Total registered users</CardDescription>
+            <CardTitle className="text-2xl font-bold text-red-500">Recent Users</CardTitle>
+            <CardDescription className="text-gray-400">
+              Last 10 registered users
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{stats.users}</div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Drivers</CardTitle>
-            <CardDescription>Total F1 drivers</CardDescription>
-          </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">{stats.drivers}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Grand Prix</CardTitle>
-            <CardDescription>Total GP events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{stats.gps}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Results</CardTitle>
-            <CardDescription>Total race results</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{stats.results}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Messages</CardTitle>
-            <CardDescription>Total messages received</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{stats.contacts}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Users</CardTitle>
-          <CardDescription>Last 10 registered users</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentUsers.map((user: any) => (
-              <div key={user.id} className="flex items-center justify-between border-b pb-2">
-                <div>
-                  <div className="font-medium">{user.email}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Joined {new Date(user.createdAt).toLocaleDateString()}
+            <div className="divide-y divide-neutral-800">
+              {recentUsers.map((user: any) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between py-4 hover:bg-neutral-800/40 transition-all px-2 rounded-lg"
+                >
+                  <div>
+                    <div className="font-semibold text-gray-200">{user.email}</div>
+                    <div className="text-sm text-gray-400">
+                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
+
+                  <Badge
+                    variant={user.role === "ADMIN" ? "destructive" : "default"}
+                    className="uppercase tracking-wider"
+                  >
+                    {user.role}
+                  </Badge>
                 </div>
-                <Badge variant={user.role === "ADMIN" ? "destructive" : "default"}>
-                  {user.role}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
     </div>
   );
 }

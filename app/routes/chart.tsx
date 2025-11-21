@@ -8,8 +8,7 @@ Chart.register(...registerables);
 
 export async function loader({}: Route.LoaderArgs) {
   const results = await resultRepository.findAll();
-  
-  // Count wins per driver (position 1)
+
   const wins: Record<string, number> = {};
   results.forEach((result) => {
     if (result.position === 1) {
@@ -17,7 +16,6 @@ export async function loader({}: Route.LoaderArgs) {
     }
   });
 
-  // Get top 10 drivers by wins
   const topDrivers = Object.entries(wins)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
@@ -34,7 +32,6 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Destroy previous chart instance
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
@@ -48,11 +45,12 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         labels: topDrivers.map((d) => d.name),
         datasets: [
           {
-            label: "Number of Wins",
+            label: "Wins",
             data: topDrivers.map((d) => d.wins),
-            backgroundColor: "rgba(59, 130, 246, 0.5)",
-            borderColor: "rgb(59, 130, 246)",
-            borderWidth: 1,
+            backgroundColor: "rgba(220, 38, 38, 0.5)", // F1 red
+            borderColor: "rgb(220, 38, 38)",
+            borderWidth: 2,
+            hoverBackgroundColor: "rgba(220, 38, 38, 0.8)",
           },
         ],
       },
@@ -61,61 +59,79 @@ export default function ChartPage({ loaderData }: Route.ComponentProps) {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            display: true,
-            position: "top",
+            labels: {
+              color: "#e5e5e5",
+              font: { size: 14 },
+            },
           },
           title: {
             display: true,
             text: "Top 10 Drivers by Race Wins",
+            color: "#fff",
+            font: { size: 20, weight: "bold" },
           },
         },
         scales: {
+          x: {
+            ticks: { color: "#e5e5e5" },
+            grid: { display: false },
+          },
           y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1,
+            ticks: { color: "#e5e5e5" },
+            grid: {
+              color: "rgba(255,255,255,0.1)",
             },
+            beginAtZero: true,
           },
         },
       },
     });
 
     return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
+      if (chartInstance.current) chartInstance.current.destroy();
     };
   }, [topDrivers]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Driver Statistics</CardTitle>
-          <CardDescription>
-            Visualizing race wins by drivers using Chart.js
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[500px]">
-            <canvas ref={chartRef}></canvas>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-b from-black via-neutral-900 to-black text-white py-12 px-4">
+      <div className="container mx-auto max-w-6xl">
+        {/* Chart Card */}
+        <Card className="bg-neutral-900 border border-neutral-800 shadow-xl rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-red-500">Driver Statistics</CardTitle>
+            <CardDescription className="text-gray-400">
+              Top Formula 1 race winners visualized with Chart.js
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[500px]">
+              <canvas ref={chartRef}></canvas>
+            </div>
+          </CardContent>
+        </Card>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {topDrivers.map((driver, index) => (
-          <Card key={driver.name}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                #{index + 1} {driver.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{driver.wins} wins</div>
-            </CardContent>
-          </Card>
-        ))}
+        {/* Driver Cards */}
+        <h2 className="text-2xl font-bold text-red-500 mt-12 mb-4">Top 10 Drivers</h2>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          {topDrivers.map((driver, index) => (
+            <Card
+              key={driver.name}
+              className="bg-neutral-900 border border-neutral-800 hover:border-red-500 transition-all rounded-xl shadow-lg"
+            >
+              <CardHeader className="pb-0">
+                <CardTitle className="text-lg font-semibold text-gray-200">
+                  #{index + 1} {driver.name}
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="pt-2 pb-4">
+                <div className="text-3xl font-extrabold text-red-500">{driver.wins}</div>
+                <div className="text-gray-400 text-sm">wins</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
